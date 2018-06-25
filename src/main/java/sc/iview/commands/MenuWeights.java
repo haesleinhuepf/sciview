@@ -34,10 +34,6 @@ package sc.iview.commands;
  * @author Curtis Rueden
  */
 public final class MenuWeights {
-    private MenuWeights() {
-        // NB: Prevent instantiation of utility class.
-    }
-
     public static final double FILE = 0;
     public static final double EDIT = 1;
     public static final double PROCESS = 2;
@@ -73,4 +69,8 @@ public final class MenuWeights {
     public static final double DEMO_MESH_TEXTURE = 2;
     public static final double DEMO_VOLUME_RENDER = 3;
     public static final double DEMO_GAME_OF_LIFE = 4;
+
+    private MenuWeights() {
+        // NB: Prevent instantiation of utility class.
+    }
 }

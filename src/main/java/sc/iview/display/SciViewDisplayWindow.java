@@ -67,12 +67,12 @@ public class SciViewDisplayWindow implements DisplayWindow {
     @Override
     public void showDisplay( boolean visible ) {
         // TODO Auto-generated method stub
-        if( !visible ) {
-            // Probably should have a var inside graphics.scenery.backends.Renderer for visibility
-        }
-        if( visible ) {
-
-        }
+//        if( !visible ) {
+//            // Probably should have a var inside graphics.scenery.backends.Renderer for visibility
+//        }
+//        if( visible ) {
+//
+//        }
     }
 
     @Override

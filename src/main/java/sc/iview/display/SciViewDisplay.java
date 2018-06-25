@@ -68,12 +68,10 @@ public class SciViewDisplay extends AbstractDisplay<SciView> {
 
     @EventHandler
     protected void onEvent( final DataRestructuredEvent event ) {
-
+        // FIXME - displays should not listen for Data events. Views should listen for
+        // data events, adjust themselves, and generate view events. The display
+        // classes should listen for view events and refresh themselves as necessary.
     }
-
-    // FIXME - displays should not listen for Data events. Views should listen for
-    // data events, adjust themselves, and generate view events. The display
-    // classes should listen for view events and refresh themselves as necessary.
 
     @EventHandler
     protected void onEvent( final DataUpdatedEvent event ) {

@@ -88,6 +88,8 @@ public class VolumeRenderDemo implements Command {
         try {
             File cubeFile = ResourceLoader.createFile( getClass(), "/cored_cube_var2_8bit.tif" );
 
+            //File cubeFile = ResourceLoader.createFile( getClass(), "/45m-0062d_RGB.tif" );
+
             cube = datasetIO.open( cubeFile.getAbsolutePath() );
         }
         catch (IOException exc) {
@@ -96,7 +98,7 @@ public class VolumeRenderDemo implements Command {
         }
 
         System.out.println( cube.firstElement().getClass() );
-        Node v = sciView.addVolume( cube, new float[] { 1, 1, 1 } );
+        sciView.addVolume( cube, new float[] { 1, 1, 1 } );
 
         if (iso) {
             int isoLevel = 1;
