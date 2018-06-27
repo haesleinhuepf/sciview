@@ -121,7 +121,7 @@ public class SciView extends SceneryBase {
     protected ArcballCameraControl targetArcball;
     protected FPSCameraControl fpsControl;
 
-    private Boolean defaultArcBall = true;// arcball target broken
+    private Boolean defaultArcBall = false;// arcball target broken
 
     Camera camera = null;
 
@@ -136,6 +136,9 @@ public class SciView extends SceneryBase {
     private Display<?> scijavaDisplay;
 
     protected Node floor;
+
+    protected float sceneRenderScale;// scenery's default unit is meter, this scales elements to work with meter-oriented rendering
+    // This is the scale factor determines the relationships between inputs and the rendered scale (e.g. your imagej stuff gets scaled by this so it works with scenery)
 
     public SciView( Context context ) {
         super( "SciView", 800, 600, false, context );
@@ -153,6 +156,8 @@ public class SciView extends SceneryBase {
     @SuppressWarnings("restriction")
     @Override
     public void init() {
+
+        setSceneRenderScale( 0.001f );
 
         // TODO: there is a Linux issue with the Vulkan renderer and X that leads to a known "RenderBadPicture" error
         if( SystemUtils.IS_OS_LINUX && !System.getProperties().containsKey("scenery.Renderer") ) {
@@ -278,6 +283,14 @@ public class SciView extends SceneryBase {
         //initialized = true; // inputSetup is called second, so that needs to toggle initialized
     }
 
+    public void setSceneRenderScale(float newScale) {
+        sceneRenderScale = newScale;
+    }
+
+    public float getSceneRenderScale() {
+        return sceneRenderScale;
+    }
+
     public void setFloor(Node n) { floor = n; }
 
     public Node getFloor() { return floor; }
@@ -317,8 +330,8 @@ public class SciView extends SceneryBase {
         }
     }
     public void setFPSSpeed(float newspeed) {
-        if (newspeed<0.30f)
-            newspeed = 0.3f;
+        if (newspeed<0.030f)
+            newspeed = 0.03f;
         else if (newspeed > 30.0f)
             newspeed = 30.0f;
         fpsScrollSpeed = newspeed;
@@ -331,8 +344,8 @@ public class SciView extends SceneryBase {
         return fpsScrollSpeed;
     }
     public void setMouseSpeed(float newspeed) {
-        if (newspeed<0.30f)
-            newspeed = 0.3f;
+        if (newspeed<0.030f)
+            newspeed = 0.03f;
         else if (newspeed > 3.0f)
             newspeed = 3.0f;
         mouseSpeedMult = newspeed;
@@ -602,7 +615,11 @@ public class SciView extends SceneryBase {
 
         final Box box = new Box( ClearGLVector3.convert( size ), inside );
         box.setMaterial( boxmaterial );
-        box.setPosition( ClearGLVector3.convert( position ) );
+
+        box.getMetadata().put("RenderScale",getSceneRenderScale());
+
+        box.setPosition( ClearGLVector3.convert( position ).times((Float) box.getMetadata().get("RenderScale")) );
+        box.setScale( new GLVector(1f,1f,1f).times( (Float) box.getMetadata().get("RenderScale") ) );
 
         //System.err.println( "Num elements in scene: " + viewer.getSceneNodes().size() );
 
@@ -634,7 +651,11 @@ public class SciView extends SceneryBase {
 
         final Sphere sphere = new Sphere( radius, 20 );
         sphere.setMaterial( material );
-        sphere.setPosition( ClearGLVector3.convert( position ) );
+
+        sphere.getMetadata().put("RenderScale",getSceneRenderScale());
+
+        sphere.setPosition( ClearGLVector3.convert( position ).times( (Float) sphere.getMetadata().get("RenderScale") ) );
+        sphere.setScale( new GLVector(1f,1f,1f).times( (Float) sphere.getMetadata().get("RenderScale") ) );
 
         activeNode = sphere;
 
@@ -661,13 +682,15 @@ public class SciView extends SceneryBase {
 
         final Line line = new Line( 2 );
 
-        line.addPoint( ClearGLVector3.convert( start ) );
-        line.addPoint( ClearGLVector3.convert( stop ) );
+        line.getMetadata().put("RenderScale",getSceneRenderScale());
+
+        line.addPoint( ClearGLVector3.convert( start ).times( (Float) line.getMetadata().get("RenderScale") ) );
+        line.addPoint( ClearGLVector3.convert( stop ).times( (Float) line.getMetadata().get("RenderScale") ) );
 
         line.setEdgeWidth( 0.1f );
 
         line.setMaterial( material );
-        line.setPosition( ClearGLVector3.convert( start ) );
+        line.setPosition( ClearGLVector3.convert( start ).times( getSceneRenderScale() ) );
 
         activeNode = line;
 
@@ -684,14 +707,16 @@ public class SciView extends SceneryBase {
         material.setSpecular( new GLVector( 1.0f, 1.0f, 1.0f ) );
 
         final Line line = new Line( points.length );
+        line.getMetadata().put("RenderScale",getSceneRenderScale());
+
         for( Vector3 pt : points ) {
-            line.addPoint( ClearGLVector3.convert( pt ) );
+            line.addPoint( ClearGLVector3.convert( pt ).times( (Float) line.getMetadata().get("RenderScale") ) );
         }
 
         line.setEdgeWidth( ( float ) edgeWidth );
 
         line.setMaterial( material );
-        line.setPosition( ClearGLVector3.convert( points[0] ) );
+        line.setPosition( ClearGLVector3.convert( points[0] ).times( (Float) line.getMetadata().get("RenderScale") ) );
 
         activeNode = line;
 
@@ -709,8 +734,9 @@ public class SciView extends SceneryBase {
         //boxmaterial.getTextures().put("diffuse", SceneViewer3D.class.getResource("textures/helix.png").getFile() );
 
         final PointLight light = new PointLight( 5.0f );
+        light.getMetadata().put("RenderScale",getSceneRenderScale());
         light.setMaterial( material );
-        light.setPosition( new GLVector( 0.0f, 0.0f, 0.0f ) );
+        light.setPosition( new GLVector( 0.0f, 0.0f, 0.0f ).times( (Float) light.getMetadata().get("RenderScale") ) );
 
         getScene().addChild( light );
         return light;
@@ -810,16 +836,20 @@ public class SciView extends SceneryBase {
     }
 
     public graphics.scenery.Node addPointCloud( Collection<? extends RealLocalizable> points, String name ) {
+        PointCloud pointCloud = new PointCloud( getDefaultPointSize(), name );
+
+        pointCloud.getMetadata().put("RenderScale",getSceneRenderScale());
+
         float[] flatVerts = new float[points.size() * 3];
         int k = 0;
         for( RealLocalizable point : points ) {
-            flatVerts[k * 3] = point.getFloatPosition( 0 );
-            flatVerts[k * 3 + 1] = point.getFloatPosition( 1 );
-            flatVerts[k * 3 + 2] = point.getFloatPosition( 2 );
+            flatVerts[k * 3] = point.getFloatPosition( 0 ) * (Float) pointCloud.getMetadata().get("RenderScale");
+            flatVerts[k * 3 + 1] = point.getFloatPosition( 1 ) * (Float) pointCloud.getMetadata().get("RenderScale");
+            flatVerts[k * 3 + 2] = point.getFloatPosition( 2 ) * (Float) pointCloud.getMetadata().get("RenderScale");
             k++;
         }
 
-        PointCloud pointCloud = new PointCloud( getDefaultPointSize(), name );
+
         Material material = new Material();
         FloatBuffer vBuffer = ByteBuffer.allocateDirect( flatVerts.length * 4 ).order(
                                                                                  ByteOrder.nativeOrder() ).asFloatBuffer();
@@ -857,6 +887,8 @@ public class SciView extends SceneryBase {
 
         scMesh.setMaterial( material );
         scMesh.setPosition( new GLVector( 0.0f, 0.0f, 0.0f ) );
+
+        scMesh.getMetadata().put("RenderScale",getSceneRenderScale());
 
         setActiveNode( scMesh );
 
@@ -934,11 +966,11 @@ public class SciView extends SceneryBase {
     }
 
     public void moveCamera( float[] position ) {
-        getCamera().setPosition( new GLVector( position[0], position[1], position[2] ) );
+        getCamera().setPosition( new GLVector( position[0], position[1], position[2] ).times( getSceneRenderScale() ) );
     }
 
     public void moveCamera( double[] position ) {
-        getCamera().setPosition( new GLVector( ( float ) position[0], ( float ) position[1], ( float ) position[2] ) );
+        getCamera().setPosition( new GLVector( ( float ) position[0], ( float ) position[1], ( float ) position[2] ).times( getSceneRenderScale() ) );
     }
 
     public String getName() {
@@ -947,28 +979,6 @@ public class SciView extends SceneryBase {
 
     public void addChild( Node node ) {
         getScene().addChild( node );
-    }
-
-    public graphics.scenery.Node addVolume( Dataset image ) {
-        float[] voxelDims = new float[image.numDimensions()];
-        for( int d = 0; d < voxelDims.length; d++ ) {
-            voxelDims[d] = ( float ) image.axis( d ).averageScale( 0, 1 );
-        }
-        return addVolume( image, voxelDims );
-    }
-
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    public graphics.scenery.Node addVolume( Dataset image, float[] voxelDimensions ) {
-        return addVolume( ( IterableInterval ) Views.flatIterable( image.getImgPlus() ), image.getName(),
-                          voxelDimensions );
-    }
-
-    public <T extends RealType<T>> graphics.scenery.Node addVolume( IterableInterval<T> image ) {
-        return addVolume( image, "Volume" );
-    }
-
-    public <T extends RealType<T>> graphics.scenery.Node addVolume( IterableInterval<T> image, String name ) {
-        return addVolume( image, name, 1, 1, 1 );
     }
 
     public void setColormap( Node n, AbstractArrayColorTable colorTable ) {
@@ -993,6 +1003,28 @@ public class SciView extends SceneryBase {
         n.getMaterial().getTextures().put("diffuse", "fromBuffer:diffuse");
         n.getMaterial().setNeedsTextureReload( true );
 
+    }
+
+    public graphics.scenery.Node addVolume( Dataset image ) {
+        float[] voxelDims = new float[image.numDimensions()];
+        for( int d = 0; d < voxelDims.length; d++ ) {
+            voxelDims[d] = ( float ) image.axis( d ).averageScale( 0, 1 );
+        }
+        return addVolume( image, voxelDims );
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public graphics.scenery.Node addVolume( Dataset image, float[] voxelDimensions ) {
+        return addVolume( ( IterableInterval ) Views.flatIterable( image.getImgPlus() ), image.getName(),
+                          voxelDimensions );
+    }
+
+    public <T extends RealType<T>> graphics.scenery.Node addVolume( IterableInterval<T> image ) {
+        return addVolume( image, "Volume" );
+    }
+
+    public <T extends RealType<T>> graphics.scenery.Node addVolume( IterableInterval<T> image, String name ) {
+        return addVolume( image, name, 1, 1, 1 );
     }
 
     public <T extends RealType<T>> graphics.scenery.Node addVolume( IterableInterval<T> image, String name,
@@ -1029,12 +1061,14 @@ public class SciView extends SceneryBase {
 
         updateVolume( image, name, voxelDimensions, v );
 
-        GLVector scaleVec = new GLVector(0.5f*(float) dimensions[0], 0.5f*(float) dimensions[1], 0.5f*(float) dimensions[2] );
+        v.getMetadata().put("RenderScale",getSceneRenderScale());
+
+        GLVector scaleVec = new GLVector(0.5f*(float) dimensions[0], 0.5f*(float) dimensions[1], 0.5f*(float) dimensions[2] ).times((Float) v.getMetadata().get("RenderScale"));
 
         v.setScale( scaleVec );// TODO maybe dont do this
         // TODO: This translation should probably be accounted for in scenery; volumes use a corner-origin and
         //        meshes use center-origin coordinate systems.
-        v.setPosition( v.getPosition().plus( new GLVector( 0.5f*dimensions[0]-0.5f, 0.5f*dimensions[1]-0.5f, 0.5f*dimensions[2]-0.5f) ) );
+        v.setPosition( v.getPosition().plus( new GLVector( 0.5f*dimensions[0]-0.5f, 0.5f*dimensions[1]-0.5f, 0.5f*dimensions[2]-0.5f).times( (Float) v.getMetadata().get("RenderScale") ) ) );
 
         v.setTrangemin( minVal );
         v.setTrangemax( maxVal );

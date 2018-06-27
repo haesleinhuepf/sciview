@@ -42,6 +42,12 @@ public interface Vector3 extends RealLocalizable, RealPositionable {
 
     // -- Vector3 methods --
 
+    default void scale(Vector3 scaleFactor) {
+        setX( xd() * scaleFactor.xd() );
+        setY( yd() * scaleFactor.yd() );
+        setZ( zd() * scaleFactor.zd() );
+    }
+
     float xf();
     float yf();
     float zf();
