@@ -84,6 +84,8 @@ public class SaveCameraConfiguration implements Command {
 
             bw.close();
             fw.close();
+
+            logService.warn( "Saving camera config to: " + saveFile.getAbsolutePath() );
         } catch (IOException e) {
             e.printStackTrace();
         }
