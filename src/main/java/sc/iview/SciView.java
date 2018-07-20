@@ -83,6 +83,7 @@ import sc.iview.controls.behaviours.CameraTranslateControl;
 import sc.iview.controls.behaviours.NodeTranslateControl;
 import sc.iview.event.NodeActivatedEvent;
 import sc.iview.event.NodeAddedEvent;
+import sc.iview.event.NodeChangedEvent;
 import sc.iview.event.NodeRemovedEvent;
 import sc.iview.javafx.JavaFXMenuCreator;
 import sc.iview.process.MeshConverter;
@@ -349,6 +350,20 @@ public class SciView extends SceneryBase {
 //        getCamera().addChild( shell );
 
         //initialized = true; // inputSetup is called second, so that needs to toggle initialized
+
+        // respond to Scenery events
+        getScene().getOnChildrenAdded().put( toString(), ( node, child ) -> {
+            eventService.publish( new NodeAddedEvent( child ) );
+            return null;
+        } );
+        getScene().getOnChildrenRemoved().put( toString(), ( node, child ) -> {
+            eventService.publish( new NodeRemovedEvent( child ) );
+            return null;
+        } );
+        getScene().getOnNodePropertiesChanged().put( toString(), node -> {
+            eventService.publish( new NodeChangedEvent( node ) );
+            return null;
+        } );
     }
 
     public void setFloor( Node n ) {
@@ -810,7 +825,6 @@ public class SciView extends SceneryBase {
         getScene().addChild( n );
         setActiveNode( n );
         updateFloorPosition();
-        eventService.publish( new NodeAddedEvent( n ) );
         return n;
     }
 
@@ -894,7 +908,6 @@ public class SciView extends SceneryBase {
 
     public void deleteNode( Node node ) {
         node.getParent().removeChild( node );
-        eventService.publish( new NodeRemovedEvent( node ) );
         if( activeNode == node ) setActiveNode( null );
     }
 
