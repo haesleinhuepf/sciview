@@ -61,6 +61,7 @@ import net.imglib2.type.numeric.IntegerType;
 import net.imglib2.type.numeric.RealType;
 import net.imglib2.type.numeric.integer.UnsignedByteType;
 import net.imglib2.type.numeric.integer.UnsignedShortType;
+import net.imglib2.util.Pair;
 import net.imglib2.view.Views;
 
 import org.apache.commons.lang3.SystemUtils;
@@ -979,10 +980,11 @@ public class SciView extends SceneryBase {
         final Class<?> voxelType = voxel.getClass();
         final float minVal, maxVal;
 
-        if( IntegerType.class.isAssignableFrom( voxelType ) ) {
+        if( voxelType == UnsignedByteType.class || voxelType == UnsignedShortType.class ) {
             minVal = ( float ) voxel.getMinValue();
             maxVal = ( float ) voxel.getMaxValue();
         } else {
+            // NB: Data will be rescaled to (0, 1).
             minVal = 0;
             maxVal = 1;
         }
@@ -1020,9 +1022,11 @@ public class SciView extends SceneryBase {
         long dimensions[] = new long[3];
         image.dimensions( dimensions );
 
-        @SuppressWarnings("unchecked") Class<T> voxelType = ( Class<T> ) image.firstElement().getClass();
+        final T voxel = image.firstElement();
+        final Class<?> voxelType = voxel.getClass();
         final int bytesPerVoxel;
         final NativeTypeEnum nType;
+        float offset = Float.NaN, width = Float.NaN;
 
         if( voxelType == UnsignedByteType.class ) {
             nType = NativeTypeEnum.UnsignedByte;
@@ -1033,6 +1037,17 @@ public class SciView extends SceneryBase {
         } else {
             nType = NativeTypeEnum.Float;
             bytesPerVoxel = 4;
+            if( IntegerType.class.isAssignableFrom( voxelType ) ) {
+                // for integer types, scale to the (min, max) of the type
+                offset = (float) voxel.getMinValue();
+                width = (float) (voxel.getMaxValue() - offset);
+            } else {
+                // for float types, scale to the (min, max) of the data
+                final Pair<T, T> minMax = ops.stats().minMax( image );
+                offset = minMax.getA().getRealFloat();
+                width = minMax.getB().getRealFloat() - offset;
+                if( width == 0 ) width = 1;
+            }
         }
 
         // Make and populate a ByteBuffer with the content of the Dataset
@@ -1047,7 +1062,8 @@ public class SciView extends SceneryBase {
             } else if( voxelType == UnsignedShortType.class ) {
                 byteBuffer.putShort( ( short ) Math.abs( ( ( UnsignedShortType ) cursor.get() ).getShort() ) );
             } else {
-                byteBuffer.putFloat( cursor.get().getRealFloat() );
+                final float val = cursor.get().getRealFloat();
+                byteBuffer.putFloat( ( val - offset ) / width );
             }
         }
         byteBuffer.flip();
