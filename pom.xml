@@ -11,7 +11,7 @@
 
 	<groupId>sc.iview</groupId>
 	<artifactId>sciview</artifactId>
-	<version>0.1.5-SNAPSHOT</version>
+	<version>0.1.5-m</version>
 
 	<name>SciView</name>
 	<description>Scenery-backed 3D visualization package for ImageJ.</description>
@@ -235,4 +235,14 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<distributionManagement>
+
+		<repository>
+			<id>bintray-haesleinhuepf-snapshots</id>
+			<name>bintray-snapshots</name>
+			<url>https://api.bintray.com/maven/haesleinhuepf/snapshots/sciview/;publish=1</url>
+		</repository>
+
+	</distributionManagement>
 </project>
